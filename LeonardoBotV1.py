@@ -87,12 +87,12 @@ class Leonardo(discord.Client):
         else: 
             return None
 
-    def zoom_function(self, commands):
-        function_name = 'zoom'
-        help_reply = 'Leonardo\'s zoom function:\n'+\
-				'!!zoom set <alias> <zoom link>\n  --> this sets the zoom link with alias (no space)\n'+\
-                '!!zoom get <alias>\n  --> this gets the zoom link\n'+\
-                '!!zoom del <alias>\n  --> this deletes the alias'
+    def save_function(self, commands):
+        function_name = 'save'
+        help_reply = 'Leonardo\'s save function:\n'+\
+				'!!save set <alias> <save link>\n  --> this sets the save link with alias (no space)\n'+\
+                '!!save get <alias>\n  --> this gets the save link\n'+\
+                '!!save del <alias>\n  --> this deletes the alias'
         failure_reply = ' failed, Check help and try again.'
         if len(commands)<2:
             return help_reply
@@ -103,7 +103,7 @@ class Leonardo(discord.Client):
             if len(commands)==2:
                 alias, link = commands
                 if link.isnumeric():
-                    link = 'https://hmc-edu.zoom.us/j/'+link
+                    link = 'https://hmc-edu.save.us/j/'+link
                 self.storage_store(function_name, 'set', alias, link)
                 reply = 'Leonardo saved link '+link+' under alias '+alias
             else: reply = 'set'+failure_reply
@@ -158,7 +158,7 @@ class Leonardo(discord.Client):
                 break
         if result == '': return ''
         commands = text.split()
-        function_mappings = {'zoom':self.zoom_function}
+        function_mappings = {'save':self.save_function}
         if commands[0] == 'show-all':
             reply = 'These are all functions Leonardo supports: '
             for key, _ in list(function_mappings.items()):
@@ -200,7 +200,7 @@ class Leonardo(discord.Client):
             if reply!='':
                 return reply 
         reply = 'This is Leonardo bot. To get all supported functions, type "!!show-all".\n'+\
-                'Typically, a command follows this pattern: "!!<product name, such as zoom> <action name, such as help> <additional arguments>"'
+                'Typically, a command follows this pattern: "!!<product name, such as save> <action name, such as help> <additional arguments>"'
         return reply
 
     async def on_ready(self):

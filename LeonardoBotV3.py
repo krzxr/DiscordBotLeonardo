@@ -4,55 +4,71 @@ import random
 import discord
 #from discord.ext import tasks as discord_tasks
 #from discord.ext import commands as discord_commands
-from LogDatabase import *
+from LogDatabaseV2 import *
 import os
 import time
 with open('discordToken.txt','r') as f:
     DISCORD_TOKEN = f.readline().strip()
     STORAGE_FILE = f.readline().strip()
     INTERNAL_KEYWORD = f.readline().strip()
-
+    DELIMIT = f.readline().strip()
+    SUBDELIMIT = f.readline().strip()
+    NEW_LINE = f.readline().strip()
 class Leonardo(discord.Client):
-    def __init__(self, storage_file, internal_key):
+    def __init__(self, storage_file, internal_key, delimit = DELIMIT, sub_delimit = SUBDELIMIT, new_line = NEW_LINE):
         super().__init__()
-        exists = os.path.exists(storage_file)
         self.internal_key = internal_key
-        self.db = LogDatabase(storage_file)
-        self.const_db, self.save_db, self.clock_db ='CONSTANTS','SAVE','CLOCK'
+        storage_file_for_db = storage_file.split('.')[0]
+        exists = os.path.exists(storage_file_for_db + '-v2.txt')
+        self.db = LogDatabase2(storage_file,delimit, sub_delimit, new_line)
+         
+        #self.const_db, self.save_db, self.clock_db = self.db.create_db('CONSTANTS','ListDB'), self.create_db('SAVE','HashDB'),self.create_db('CLOCK','BucketDB')
+        if not exists:
+            self.const_db, self.save_db, self.clock_db = self.db.create_dbs([['CONSTANTS','ListDB'],['SAVE','HashDB'],['CLOCK','BucketDB',{'buckets':list(range(1,8))}]], write = not exists)
+        else:
+            self.const_db, self.save_db, self.clock_db = self.db.get_dbs(['CONSTANTS','SAVE','CLOCK'])
+
         self.names = 'names'
         self.bots = 'bots'
         self.greetings = 'greetings'
+
         self.developing = 'developing'
 
         self._init(exists)
     def _init(self, exists):
         if not exists:
-            if not self.db.create_db([self.const_db, self.save_db, self.clock_db]):
-                raise('create db error')
             constants = {\
                 self.bots: ['siri','alexa'],\
                 self.greetings:['hi','hello','what\'s up','how are you'],
                 self.names: ['leo','leonardo','!!']}
             for key, val in list(constants.items()):
-                if not self.db.write_to_ls(self.const_db, key, val):
+                if not self.const_db.write(key, val):
                     raise('create initial constants error')
 
     def greet_commands(self,text,author):
-        for bot in self.db.get(self.const_db,self.bots): 
+        for bot in self.const_db.get(self.bots): 
             if bot in text:
                 response = 'I am better than '+bot
                 return response
-        greetings = self.db.get(self.const_db, self.greetings)
+        greetings = self.const_db.get(self.greetings)
+        punctuations = ['!','?','.',',','\'','\"']
+        for punctuation in punctuations: 
+            text = text.replace(punctuation,'')
+        reply = ''
         for greeting in greetings:
-            if greeting in text:
-                response = random.choices(greetings)[0]
-                return response[0].upper()+response[1:]+' '+author+'!'
-        return ''
+            if greeting in text.split():
+                reply = self._send_greetings(author)
+        return reply
+    def _send_greetings(self, author):
+        greetings = self.const_db.get( self.greetings)
+        response = random.choices(greetings)[0]
+        return response[0].upper()+response[1:]+' '+author+'!'
     
     def save_fn(self,commands):
-        if len(commands)==2:
-            alias, content = commands
-            self.db.write_val(self.save_db, alias, content)
+        if len(commands)>=2:
+            alias, *content = commands
+            content = ' '.join(content)
+            self.save_db.write( alias, content)
             reply = 'Leonardo saved content '+content+' under alias '+alias
         else: reply = 'Ooops save failed'
         return reply
@@ -61,7 +77,7 @@ class Leonardo(discord.Client):
 
         if len(commands)==1:
             alias = commands[0]
-            reply = self.db.get(self.save_db, alias)
+            reply = self.save_db.get( alias)
             if reply == None: reply = 'Leonardo does not alias '+alias 
         else: reply = 'Ooops get failed'
         return reply
@@ -70,12 +86,9 @@ class Leonardo(discord.Client):
         reply = False
         if len(commands)==1:
             alias = commands[0]
-            reply = self.db.delete(self.save_db, alias)
-        if reply:
+            self.save_db.delete( alias)
             return alias + ' removed'
-        else:
-            return 'Ooops delete failed'
-
+        return ''
     def external_commands(self,text,author):
         external_commands = {\
             'save': (self.save_fn, 'save <alias> <content>'),\
@@ -89,11 +102,14 @@ class Leonardo(discord.Client):
 
         if not done: return ''
         
-        commands = text.split()
+        commands = text.split(' ')
+        while commands and commands[0] == '':
+            commands.pop(0)
+        print('external commands',commands)
         command = commands[0]
         commands = commands[1:]
 
-        if command == 'show-all':
+        if command in ['show-all','help']:
             reply = 'These are functions Leonardo supports: \n'
             for key,(_, explain) in list(external_commands.items()):
                 if self.developing in explain:
@@ -103,7 +119,7 @@ class Leonardo(discord.Client):
         elif command in external_commands:
             
             fn, msg = external_commands[command]
-            if self.DEVELOPPING in msg:
+            if self.developing in msg:
                 reply = 'Leonardo is not ready for this function yet'
             else:
                 reply = fn(commands)
@@ -128,30 +144,26 @@ class Leonardo(discord.Client):
         if command == 'get':
             if len(commands)!=2: return ''
             db, key = commands
-            return self.db.get(db, key)
-        elif command == 'set':
+            return self.db.get_db[db].get(key)
+        elif command == 'write':
             if len(commands)!=3: return ''
             db, key, val = commands
-            return self.db.write_val(db, key, val)
-        elif command == 'append':
-            if len(commands)!=3: return ''
-            db, key, val = commands
-            return self.db.write_to_ls(db, key, val)
+            return self.db.get_db[db].write(key, val)
         elif command == 'del':
             if len(commands)!=2: return ''
             db, key = commands
-            return self.db.delete(db, key)
+            return self.db.get_db[db].delete(key)
         elif command == 'pop':
             if len(commands)!=3: return ''
             db, key, val = commands
-            return self.db.pop_from_ls(db, key, val)
+            return self.db.get_db[db].pop(key, val)
        
         else: return ''
     
     def _remove_activation_code(self, text):
         remove_activation = lambda x: '' if not x in text else text[text.index(x)+len(x):]
         result = ''
-        for name in self.db.get(self.const_db, self.names):
+        for name in self.const_db.get(self.names):
             result = remove_activation(name)
             if result != '':
                 return True, result
@@ -162,7 +174,7 @@ class Leonardo(discord.Client):
             return False
         text = text.lower()
         is_directed_to = lambda x: x[0] in text and text.index(x[0])<x[1]
-        for name in self.db.get(self.const_db, self.names):
+        for name in self.const_db.get(self.names):
             length = 3 if name == '!!' else 15
             if is_directed_to([name,length]):
                 return True
@@ -177,8 +189,7 @@ class Leonardo(discord.Client):
             reply = function_group(text,author)
             if reply!='':
                 return reply 
-        reply = 'This is Leonardo bot. To get all supported functions, type "!!show-all".\n'+\
-                'Typically, a command follows this pattern: "!!<action name, such as help, save, or get> <additional arguments>"'
+        reply = self._send_greetings(author) + ' Say "help" to get help'
         return reply
 
     async def on_ready(self):
@@ -189,7 +200,6 @@ class Leonardo(discord.Client):
         # don't respond to ourselves
         if message.author == self.user:
             return
-
         reply = self.respond(message.content, message.author.name)
         if reply!=None:
             await message.channel.send(reply)
@@ -232,7 +242,7 @@ class Leonardo(discord.Client):
             array = [week_of_day_num, hour, minute, num_occurance, last_used_time, msg]
     
 
-            if not self.db.write_to_ls(self.clock_db, alias, array, overwrite=True):
+            if not self.clock_db.write( alias, array, overwrite=True):
                 return 'Set reminder failed'
             reply = 'Set reminder for alias '+ alias + 'every '+week_of_day[0].upper()+week_of_day[1:]+' '+time+' Pacific Time for '+num_occurance+' occurances. The message is '+msg 
         else: 
@@ -242,16 +252,16 @@ class Leonardo(discord.Client):
         if not len(commands)==1:
             return 'invalid delete'
         alias = commands[0]
-        if not self.db.delete(self.clock_db, alias):
+        if not self.clock_db.delete( alias):
             return 'invalid delete'
         else: return 'reminder alias '+alias +' removed!'
 
     #@discord_tasks.loop(seconds = 60 * 10)
     async def run_clock_fn(self):
         now = time.time()
-        keys = self.db.get_keys(self.clock_db, default = [])
+        keys = self.clock_db.get_keys()
         for key in keys:
-            content = self.db.get(db, key, default = None)
+            content = self.clock_db.get(key, default = None)
             if not content or len(content)!=5: continue 
             week_of_day, hour, minute, num_occurance, last_used_time = content 
             if now < last_used_time + 60 * 60 * 24 * 7:
