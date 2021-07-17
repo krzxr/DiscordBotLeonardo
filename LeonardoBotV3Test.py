@@ -2,7 +2,10 @@ from LeonardoBotV3 import *
 
 def test(include, result):
     if result==None:
-        print('#############\nerror! for expected',include,'\n################')
+        if include != None:
+            print('#############\nerror! Got <None> for expected',include,'\n################')
+        else:
+            print('success!:: Expect <None> Got <None>')
     elif not include in result:
         print('error!:: <' +include + '> is not in result <'+result+'>')
     else: 
@@ -25,4 +28,14 @@ test('help', leo.respond('leo his!','test'))
 test('supports', leo.respond('leo help','test'))
 test('test', leo.respond('Hello Leonardo!','test'))
 test('test', leo.respond('Hi!!','test'))
-
+test('Want', leo.respond('https://zoom',''))
+test('https://zoom', leo.respond('Yes alias',''))
+test(None, leo.respond('hi',''))
+test('https://zoom', leo.respond('Leo get alias',''))
+test('Want', leo.respond('https://zoom1',''))
+test('Got', leo.respond('No',''))
+test('Want', leo.respond('https://zoom2',''))
+test('Missing', leo.respond('Yes',''))
+test('https://zoom2', leo.respond('Yes alias2',''))
+test('Want', leo.respond('https://zoom3',''))
+test('forget', leo.respond('Hi',''))

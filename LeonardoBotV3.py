@@ -33,7 +33,8 @@ class Leonardo(discord.Client):
         self.greetings = 'greetings'
 
         self.developing = 'developing'
-
+        self.tmp_zoom_link = ''
+        
         self._init(exists)
     def _init(self, exists):
         if not exists:
@@ -179,11 +180,41 @@ class Leonardo(discord.Client):
             if is_directed_to([name,length]):
                 return True
         return False
+
+    def promote_commands(self, text, author):
+        if self.tmp_zoom_link != '':
+            text = text.split()
+            if 'no' in text:
+                self.tmp_zoom_link = ''
+                reply = 'Got it! Link is not saved.'
+            elif text[0] == 'yes':
+                if len(text)==1: 
+                    reply = 'Missing alias. say "Yes <alias>"'
+                else:
+                    alias = ' '.join(text[1:])
+                    content = self.tmp_zoom_link
+                    self.save_db.write( alias, content)
+                    reply = 'Leonardo saved content '+content+' under alias '+alias+ '.\nTo get this link, say "Leo get <alias>"'
+                    self.tmp_zoom_link = ''
+            else:
+                reply = 'Leo will forget about this link'
+                self.tmp_zoom_link = ''
+
+        elif 'https' in text and 'zoom' in text:
+            self.tmp_zoom_link = text
+            reply = 'Want to save this zoom link to Leo? Say "Yes <alias>", or "No".'
+        else: reply = ''
+        return reply 
     def respond(self, text,author):
         text = text.lower()
+        first_function_groups = [self.promote_commands]
+        for function_group in first_function_groups:
+            reply = function_group(text,author)
+            if reply!='':
+                return reply 
         if not self._should_activate_bot(text):
             return None
-            
+        
         function_groups = [self.internal_commands, self.greet_commands, self.external_commands]
         for function_group in function_groups:
             reply = function_group(text,author)
