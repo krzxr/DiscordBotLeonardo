@@ -41,7 +41,7 @@ class Leonardo(discord.Client):
             constants = {\
                 self.bots: ['siri','alexa'],\
                 self.greetings:['hi','hello','what\'s up','how are you'],
-                self.names: ['leo','leonardo','!!']}
+                self.names: ['leo','leonardo','!&']}
             for key, val in list(constants.items()):
                 if not self.const_db.write(key, val):
                     raise('create initial constants error')
@@ -90,15 +90,31 @@ class Leonardo(discord.Client):
             self.save_db.delete( alias)
             return alias + ' removed'
         return ''
+
+    def zoom_fn(self,commands,author):
+        zoom_link = self.save_db.get(author,None)
+        if zoom_link == None:
+            reply = 'Leo does not have a record of your link, please send your link and Leo can add it'
+        else:
+            reply = zoom_link
+        return reply
+    def zoom_del_fn(self,commands,author):
+        self.save_db.delete(author);
+        reply = 'Your link is deleted'
+        return reply
     def external_commands(self,text,author):
         external_commands = {\
             'save': (self.save_fn, 'save <alias> <content>'),\
             'get' : (self.get_fn, 'get <alias>'),\
             'del' : (self.del_fn, 'del <alias>'),\
             'reminder' : (self.set_clock_fn, 'reminder alias <days_of_week: M,T,W,H,F,S,U (sunday)> <HH:MM, 24 hours> <optional: num_occurance> <msg>,'+self.developing),
-            'del-reminder' : (self.del_clock_fn, 'del-reminder alias.' +self.developing)
+            'del-reminder' : (self.del_clock_fn, 'del-reminder alias.' +self.developing),
+            'zoom' : (self.zoom_fn, 'zoom'),\
+            'zoom-del': (self.zoom_del_fn, 'zoom-del'),
         }
         
+        use_author = ['zoom','zoom-del']
+
         done, text = self._remove_activation_code(text)
 
         if not done: return ''
@@ -118,10 +134,13 @@ class Leonardo(discord.Client):
                 reply += explain +'\n'
             reply = reply[:-1]
         elif command in external_commands:
-            
+    
             fn, msg = external_commands[command]
             if self.developing in msg:
                 reply = 'Leonardo is not ready for this function yet'
+            elif command in use_author:
+                reply = fn(commands, author)
+                print(reply)
             else:
                 reply = fn(commands)
 
@@ -180,8 +199,17 @@ class Leonardo(discord.Client):
             if is_directed_to([name,length]):
                 return True
         return False
+    
+    def promote_by_saving_commands(self,text,author):
+        reply = ''
+        if 'https' in text and 'zoom' in text:
+            if self.save_db.get(author,None) == None:
+                self.save_db.write(author,text)
+                reply = 'Leonardo saved your zoom link. To share your link, say "Leo zoom". To delete, say "Leo zoom delete". Leo is case insensitive.'
 
-    def promote_commands(self, text, author):
+        return reply
+
+    def promote_by_asking_commands(self, text, author):
         if self.tmp_zoom_link != '':
             text = text.split()
             if 'no' in text:
@@ -207,7 +235,7 @@ class Leonardo(discord.Client):
         return reply 
     def respond(self, text,author):
         text = text.lower()
-        first_function_groups = [self.promote_commands]
+        first_function_groups = [self.promote_by_saving_commands]
         for function_group in first_function_groups:
             reply = function_group(text,author)
             if reply!='':
