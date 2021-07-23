@@ -123,7 +123,7 @@ class Leonardo(discord.Client):
         while commands and commands[0] == '':
             commands.pop(0)
         print('external commands',commands)
-        command = commands[0]
+        command = commands[0].lower()
         commands = commands[1:]
 
         if command in ['show-all','help']:
@@ -158,7 +158,7 @@ class Leonardo(discord.Client):
         internal_key = commands[0]
         if internal_key != self.internal_key:
             return ''
-        command = commands[1]
+        command = commands[1].lower()
         commands = commands[2:]
         
         if command == 'get':
@@ -181,7 +181,7 @@ class Leonardo(discord.Client):
         else: return ''
     
     def _remove_activation_code(self, text):
-        remove_activation = lambda x: '' if not x in text else text[text.index(x)+len(x):]
+        remove_activation = lambda x: '' if not x in text.lower() else text[text.lower().index(x)+len(x):]
         result = ''
         for name in self.const_db.get(self.names):
             result = remove_activation(name)
@@ -193,7 +193,7 @@ class Leonardo(discord.Client):
         if len(text)<2:
             return False
         text = text.lower()
-        is_directed_to = lambda x: x[0] in text and text.index(x[0])<x[1]
+        is_directed_to = lambda x: x[0] in text.lower() and text.lower().index(x[0])<x[1]
         for name in self.const_db.get(self.names):
             length = 3 if name == '!!' else 15
             if is_directed_to([name,length]):
@@ -202,7 +202,7 @@ class Leonardo(discord.Client):
     
     def promote_by_saving_commands(self,text,author):
         reply = ''
-        if 'https' in text and 'zoom' in text:
+        if 'https' in text.lower() and 'zoom' in text.lower():
             if self.save_db.get(author,None) == None:
                 self.save_db.write(author,text)
                 reply = 'Leonardo saved your zoom link. To share your link, say "Leo zoom". To delete, say "Leo zoom delete". Leo is case insensitive.'
@@ -234,7 +234,6 @@ class Leonardo(discord.Client):
         else: reply = ''
         return reply 
     def respond(self, text,author):
-        text = text.lower()
         first_function_groups = [self.promote_by_saving_commands]
         for function_group in first_function_groups:
             reply = function_group(text,author)
