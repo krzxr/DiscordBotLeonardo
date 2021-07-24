@@ -34,7 +34,7 @@ test(None, leo.respond('Hi!!','test'))
 test('saved', leo.respond('https://zoom_user_name_abc','user_name_abc'))
 test('https://zoom/user_name_abc', leo.respond('leo zoom','user_name_abc'))
 test('deleted', leo.respond('leo zoom-del','user_name_abc'))
-test('saved', leo.respond('https://ZOOM/user_name_bcd','user_name_bcd'))
+test('saved', leo.respond('hi https://ZOOM/user_name_bcd','user_name_bcd'))
 test('https://ZOOM/user_name_bcd', leo.respond('leo zoom','user_name_bcd'))
 '''
 test('Want', leo.respond('https://zoom',''))

@@ -204,8 +204,12 @@ class Leonardo(discord.Client):
         reply = ''
         if 'https' in text.lower() and 'zoom' in text.lower():
             if self.save_db.get(author,None) == None:
-                self.save_db.write(author,text)
-                reply = 'Leonardo saved your zoom link. To share your link, say "Leo zoom". To delete, say "Leo zoom delete". Leo is case insensitive.'
+                text = text.split()
+                
+                while not 'https' in text[0].lower() and not 'zoom' in text[0].lower():
+                    text.pop(0)
+                self.save_db.write(author,text[0])
+                reply = 'Leonardo saved your zoom link. To share your link, say "Leo zoom". To delete, say "Leo zoom delete".'
 
         return reply
 
