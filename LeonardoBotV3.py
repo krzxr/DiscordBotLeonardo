@@ -28,20 +28,24 @@ class Leonardo(discord.Client):
         else:
             self.const_db, self.save_db, self.clock_db = self.db.get_dbs(['CONSTANTS','SAVE','CLOCK'])
 
+        self.wordy = False
+
         self.names = 'names'
         self.bots = 'bots'
         self.greetings = 'greetings'
-
+        self.fun_replies = 'fun_replies'
         self.developing = 'developing'
         self.tmp_zoom_link = ''
         
         self._init(exists)
+        
     def _init(self, exists):
         if not exists:
             constants = {\
                 self.bots: ['siri','alexa'],\
                 self.greetings:['hi','hello','what\'s up','how are you'],
-                self.names: ['leo','leonardo','!&']}
+                self.names: ['leo','leonardo','!&'],
+                self.fun_replies: ['Got it','Alright','Very good', 'Ok','Sounds good','好的','没问题','行','확인','괜찮은']}
             for key, val in list(constants.items()):
                 if not self.const_db.write(key, val):
                     raise('create initial constants error')
@@ -65,12 +69,19 @@ class Leonardo(discord.Client):
         response = random.choices(greetings)[0]
         return response[0].upper()+response[1:]+' '+author+'!'
     
+    def _update_reply(self,reply):
+        if self.wordy:
+            return reply
+        else:
+            return random.choices(self.fun_replies)[0]
+
     def save_fn(self,commands):
         if len(commands)>=2:
             alias, *content = commands
             content = ' '.join(content)
             self.save_db.write( alias, content)
-            reply = 'Leonardo saved content '+content+' under alias '+alias
+            reply = 'Leonardo saved content under alias '+alias
+            reply = self._update_reply(reply)
         else: reply = 'Ooops save failed'
         return reply
 
@@ -88,8 +99,10 @@ class Leonardo(discord.Client):
         if len(commands)==1:
             alias = commands[0]
             self.save_db.delete( alias)
-            return alias + ' removed'
-        return ''
+            reply =  alias + ' removed'
+            reply = self._update_reply(reply)
+        else: reply = ''
+        return reply
 
     def zoom_fn(self,commands,author):
         zoom_link = self.save_db.get(author,None)
@@ -101,6 +114,7 @@ class Leonardo(discord.Client):
     def zoom_del_fn(self,commands,author):
         self.save_db.delete(author);
         reply = 'Your link is deleted'
+        reply = self._update_reply(reply)
         return reply
     def external_commands(self,text,author):
         external_commands = {\
@@ -140,10 +154,8 @@ class Leonardo(discord.Client):
                 reply = 'Leonardo is not ready for this function yet'
             elif command in use_author:
                 reply = fn(commands, author)
-                print(reply)
             else:
                 reply = fn(commands)
-
         else:
             reply = ''
         return reply

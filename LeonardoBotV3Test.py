@@ -16,6 +16,7 @@ file_name = 'test-leo-bot.txt'
 recorded_file = file_name.split('.')[0]+'-v2.txt'
 if os.path.exists(recorded_file): os.remove(recorded_file)
 leo = Leonardo(file_name,'test')
+leo.wordy = True
 test('saved',leo.respond('!& save a b',''))
 test('saved',leo.respond('!& save a b c',''))
 test('b',leo.respond('!& get a',''))
