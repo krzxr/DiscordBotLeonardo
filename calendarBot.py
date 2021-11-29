@@ -9,8 +9,8 @@ import discord
 from dateutil import parser
 
 # This token can be found on the Bot page for your application
-
-DISCORD_TOKEN = 'ODAzNzc4NzQ1MTczMDE2NjQ3.YBCvSg.jY00lhz8Vh3kv5CtvdShtvCnwSI'
+with open('calendar_bot.txt',r) as f:
+    DISCORD_TOKEN = f.readline().strip()
 ACTIVATION_WORD = 'calendar'
 class CalendarBot(discord.Client):
     START_DATE = parser.parse('1/1/2021')
