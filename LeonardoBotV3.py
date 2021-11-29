@@ -71,10 +71,10 @@ class Leonardo(discord.Client):
     
     def _update_reply(self,reply):
         if self.wordy:
-            return reply
+            pass
         else:
-            return random.choices(self.fun_replies)[0]
-
+            reply = random.choices(self.const_db.get(self.fun_replies))[0]
+        return reply
     def save_fn(self,commands):
         if len(commands)>=2:
             alias, *content = commands
