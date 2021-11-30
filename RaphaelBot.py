@@ -53,7 +53,7 @@ class Raphael(discord.Client):
                     reply = self.book[name].page
             elif len(arr)==2:
                 command, num = arr
-                if command in ['split','j']:
+                if command in ['jump','j']:
                     self.book[name].page = num
                     reply = self.book[name].read()
                 elif command in ['i','n','inc','next']:
